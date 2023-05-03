@@ -4,4 +4,4 @@ helm repo update metallb
 helm upgrade --install --namespace kube-system \
     metallb metallb/metallb
 
-kubectl apply -f config.yml
+kubectl apply -f config.yaml
