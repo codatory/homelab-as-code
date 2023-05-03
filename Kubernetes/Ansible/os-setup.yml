@@ -1,6 +1,6 @@
 - name: Applying OS Configuration Baseline
   hosts: all
-  gather_facts: no
+  gather_facts: false
   become: true
   serial: 2
   vars:
@@ -12,29 +12,31 @@
         state: present
         group: sudo
         commands: ALL
-        nopassword: yes
+        nopassword: true
     - name: Prepare Aptitude
-      apt:
-        cache_valid_time: 1800
-        autoremove: yes
-        autoclean: yes
+      ansible.builtin.apt:
+        autoremove: true
+        autoclean: true
         name: aptitude
     - name: Install HWE
-      apt:
+      ansible.builtin.apt:
         name: linux-generic-hwe-20.04
     - name: Install NFS Tools
-      apt:
+      ansible.builtin.apt:
         name: nfs-common
     - name: Install IPVS Tools
-      apt:
+      ansible.builtin.apt:
         name: ['ipset', 'ipvsadm']
     - name: Install Fail2Ban
-      apt:
+      ansible.builtin.apt:
         name: fail2ban
     - name: Configure fail2ban
       register: fail2ban_jail
-      copy:
+      ansible.builtin.copy:
         dest: /etc/fail2ban/jail.local
+        owner: root
+        group: root
+        mode: "644"
         content: |
           [sshd]
           enabled = true
@@ -43,48 +45,40 @@
           [sshd-ddos]
           enabled = true
           port = 22
-    - name: Stop fail2ban if config changed
-      when: fail2ban_jail.changed
-      service:
+    - name: Enable and (re)start fail2ban
+      ansible.builtin.service:
         name: fail2ban
-        state: stopped
-    - name: Enable and start fail2ban
-      service:
-        name: fail2ban
-        state: started
-        enabled: yes
+        state: restarted
+        enabled: true
     - name: Disable swap for current boot
-      command:
+      register: swapoff
+      changed_when: swapoff.rc != 0
+      ansible.builtin.command:
         cmd: swapoff -a
     - name: Disable Swap permenently
-      replace:
+      ansible.builtin.replace:
         path: /etc/fstab
         regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
         replace: '#\1\2\3swap\4'
-        backup: yes
+        backup: true
     - name: Remove swap.img file
-      file:
+      ansible.builtin.file:
         path: /swap.img
         state: absent
-    - name: Disable Transparent Huge-Pages in Grub config
+    - name: Enable Transparent Huge-Pages in Grub config
       register: grub_config
-      lineinfile:
+      notify: Update Grub
+      ansible.builtin.lineinfile:
         path: /etc/default/grub
         regexp: "^GRUB_CMDLINE_LINUX"
         line: GRUB_CMDLINE_LINUX="transparent_hugepage=always"
-    - name: Update grub
-      when: grub_config.changed
-      block:
-        - name: Update grub
-          command:
-            cmd: nice update-grub2
     - name: Configuring Sysctl Optimizations
-      register: sysctl
+      notify: Mark reboot
       ansible.posix.sysctl:
         name: "{{ item[0] }}"
         value: "{{ item[1] }}"
         sysctl_file: /etc/sysctl.d/20-optimization.conf
-        sysctl_set: yes
+        sysctl_set: true
       loop:
         - ["net.ipv4.tcp_slow_start_after_idle", 1]
         - ["net.ipv4.ip_local_port_range", "49152 65535"]
@@ -126,8 +120,17 @@
         - ["kernel.randomize_va_space", "2"]
         - ["net.ipv4.conf.default.log_martians", "1"]
         - ["net.ipv4.conf.all.log_martians", "1"]
+
+
+  handlers:
     - name: Mark reboot
-      when: sysctl.changed
-      file:
+      ansible.builtin.file:
         path: /var/run/reboot-required
         state: touch
+        owner: root
+        group: root
+        mode: "644"
+
+    - name: Update grub
+      notify: Mark reboot
+      ansible.builtin.command: nice update-grub2
