@@ -20,6 +20,7 @@
         name: aptitude
     - name: Install HWE
       ansible.builtin.apt:
+        notify: Mark reboot
         name: linux-generic-hwe-20.04
     - name: Install NFS Tools
       ansible.builtin.apt:
