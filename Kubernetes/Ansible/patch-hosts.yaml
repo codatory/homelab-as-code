@@ -1,24 +1,29 @@
 - name: Kubernetes Cluster Patching
   hosts: all
-  gather_facts: no
+  gather_facts: false
   become: true
   serial: 2
   tasks:
     - name: Install needrestart
-      apt:
-        cache_valid_time: 900
+      ansible.builtin.apt:
         name: needrestart
     - name: Update Apt Packages
-      apt:
-        upgrade: yes
-        autoremove: yes
-        autoclean: yes
+      ansible.builtin.apt:
+        upgrade: true
+        autoremove: true
+        autoclean: true
     - name: Check if service restart is required
-      command: "needrestart -p"
-      ignore_errors: true
-      register: checkrestart
-    - name: Mark reboot
-      when: checkrestart.failed or sysctl.changed
-      file:
+      register: needrestart
+      ansible.builtin.command: "needrestart -p"
+      notify: Mark system for reboot
+      changed_when: needrestart.rc == 1 or needrestart.rc == 2
+      failed_when: needrestart.rc > 2
+  handlers:
+    - name: Mark system for reboot
+      when: firmware.changed
+      ansible.builtin.file:
         path: /var/run/reboot-required
         state: touch
+        owner: root
+        group: root
+        mode: "644"
