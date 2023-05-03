@@ -1,0 +1,28 @@
+- name: Kubernetes LB Config
+  hosts: control
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Enable nonlocal bind
+      sysctl:
+        name: net.ipv4.ip_nonlocal_bind
+        value: 1
+    - name: Install keepalived
+      apt:
+        cache_valid_time: 900
+        name: keepalived
+    - name: Enable keepalived daemon
+      service:
+        name: keepalived.service
+        state: started
+        enabled: true
+    - name: Update keepalived config file
+      register: config
+      copy:
+        src: keepalived.conf
+        dest: /etc/keepalived/keepalived.conf
+    - name: Reload keepalived
+      when: config.changed
+      service:
+        name: keepalived.service
+        state: reloaded

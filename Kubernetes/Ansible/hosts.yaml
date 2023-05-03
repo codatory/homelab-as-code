@@ -1,0 +1,18 @@
+all:
+  children:
+    control:
+      hosts:
+        10.8.0.11:
+          node_name: k-c-1
+        10.8.0.12:
+          node_name: k-c-2
+        10.8.0.13:
+          node_name: k-c-3
+    work:
+      hosts:
+        10.8.0.21:
+          node_name: k-w-a
+        10.8.0.22:
+          node_name: k-w-b
+        10.8.0.23:
+          node_name: k-w-c

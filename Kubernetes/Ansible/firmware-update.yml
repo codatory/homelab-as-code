@@ -1,0 +1,22 @@
+- name: Applying OS Configuration Baseline
+  hosts: all
+  gather_facts: no
+  become: true
+  vars:
+    ansible_ssh_pipelining: true
+  tasks:
+    - name: Install fwupd
+      apt:
+        name: fwupd
+    - name: Refresh fwupd db
+      command:
+        cmd: fwupdmgr refresh
+      ignore_errors: yes
+    - name: Install firmware updates
+      register: firmware
+      command:
+        cmd: fwupdmgr update -y
+    - name: Reboot for firmware updates
+      when: firmware.changed
+      throttle: 1
+      reboot:
