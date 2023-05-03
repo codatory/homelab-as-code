@@ -1,0 +1,4 @@
+configuration:
+  lockttl: 15m
+  drain-timeout: 5m
+hostNetwork: false
