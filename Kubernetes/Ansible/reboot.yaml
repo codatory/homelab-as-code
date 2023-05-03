@@ -1,0 +1,37 @@
+- name: Rolling Reboot
+  hosts: all
+  gather_facts: false
+  become: true
+  serial: 1
+  tasks:
+    - name: Check if reboot is required
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+    - name: Drain, Reboot and Uncordon Node
+      when: reboot_required.stat.exists
+      block:
+      - name: Drain system
+        connection: local
+        become: false
+        command: "kubectl drain {{ node_name }} --grace-period=120 --timeout=300s --ignore-daemonsets --delete-emptydir-data"
+      - name: Restart System
+        reboot:
+          post_reboot_delay: 30
+          pre_reboot_delay: 90
+    - name: Ensure k0s is in a running state
+      service:
+        name: "{{ k0s_service }}" 
+        state: started
+      register: k0s_details
+      until: k0s_details.status.ActiveState == "active"
+      retries: 15
+      delay: 20
+    - name: Wait 30 seconds
+      connection: local
+      become: false
+      command: "sleep 30"
+    - name: Uncordon System
+      connection: local
+      become: false
+      command: "kubectl uncordon {{ node_name }}"

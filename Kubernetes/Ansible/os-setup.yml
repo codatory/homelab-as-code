@@ -2,6 +2,7 @@
   hosts: all
   gather_facts: no
   become: true
+  serial: 2
   vars:
     ansible_ssh_pipelining: true
   tasks:
@@ -39,25 +40,91 @@
           [sshd-ddos]
           enabled = true
           port = 22
-    - name: Restart fail2ban
+    - name: Stop fail2ban if config changed
       when: fail2ban_jail.changed
       service:
         name: fail2ban
-        state: restarted
-    - name: Enable fail2ban
+        state: stopped
+    - name: Enable and start fail2ban
       service:
         name: fail2ban
         state: started
         enabled: yes
-    - name: Update all packages
-      apt:
-        state: latest
-        upgrade: yes
-    - name: Check if reboot is required
-      stat:
+    - name: Disable swap for current boot
+      command:
+        cmd: swapoff -a
+    - name: Disable Swap permenently
+      replace:
+        path: /etc/fstab
+        regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+        replace: '#\1\2\3swap\4'
+        backup: yes
+    - name: Remove swap.img file
+      file:
+        path: /swap.img
+        state: absent
+    - name: Disable Transparent Huge-Pages in Grub config
+      register: grub_config
+      lineinfile:
+        path: /etc/default/grub
+        regexp: "^GRUB_CMDLINE_LINUX"
+        line: GRUB_CMDLINE_LINUX="transparent_hugepage=always"
+    - name: Update grub
+      when: grub_config.changed
+      block:
+        - name: Update grub
+          command:
+            cmd: nice update-grub2
+    - name: Configuring Sysctl Optimizations
+      register: sysctl
+      ansible.posix.sysctl:
+        name: "{{ item[0] }}"
+        value: "{{ item[1] }}"
+        sysctl_file: /etc/sysctl.d/20-optimization.conf
+        sysctl_set: yes
+      loop:
+        - ["net.ipv4.tcp_slow_start_after_idle", 1]
+        - ["net.ipv4.ip_local_port_range", "49152 65535"]
+        - ["net.ipv4.tcp_fastopen", 3]
+        - ["net.ipv4.tcp_ecn", 1]
+        - ["net.ipv4.tcp_sack", 1]
+        - ["net.ipv4.tcp_dsack", 1]
+        - ["net.core.rmem_default", 16777216]
+        - ["net.core.rmem_max", 16777216]
+        - ["net.core.somaxconn", 8192]
+        - ["net.core.netdev_max_backlog", 16384]
+        - ["net.core.wmem_default", 16777216]
+        - ["net.core.wmem_max", 16777216]
+        - ["net.core.optmem_max", "65536"]
+        - ["net.ipv4.tcp_mem", "1638400 1638400 1638400"]
+        - ["net.ipv4.tcp_rmem", "4096 87380 16777216"]
+        - ["net.ipv4.tcp_wmem", "4096 87380 16777216"]
+        - ["net.ipv4.tcp_adv_win_scale", "-1"]
+        - ["net.ipv4.tcp_notsent_lowat", "131072"]
+        - ["net.ipv4.udp_rmem_min", "8192"]
+        - ["net.ipv4.udp_wmem_min", "8192"]
+        - ["net.core.default_qdisc", "fq_codel"]
+        - ["net.ipv4.tcp_congestion_control", "bbr"]
+        - ["net.ipv4.conf.default.rp_filter", "1"]
+        - ["net.ipv4.conf.all.rp_filter", "1"]
+        - ["net.ipv4.tcp_max_syn_backlog", "2048"]
+        - ["net.ipv4.tcp_synack_retries", "2"]
+        - ["net.ipv4.tcp_syn_retries", "2"]
+        - ["net.ipv4.conf.all.accept_redirects", "0"]
+        - ["net.ipv6.conf.all.accept_redirects", "0"]
+        - ["net.ipv4.conf.default.accept_redirects", "0"]
+        - ["net.ipv6.conf.default.accept_redirects", "0"]
+        - ["net.ipv4.conf.all.send_redirects", "0"]
+        - ["net.ipv4.conf.default.send_redirects", "0"]
+        - ["net.ipv4.conf.all.accept_source_route", "0"]
+        - ["net.ipv6.conf.all.accept_source_route", "0"]
+        - ["net.ipv4.conf.default.accept_source_route", "0"]
+        - ["net.ipv6.conf.default.accept_source_route", "0"]
+        - ["kernel.randomize_va_space", "2"]
+        - ["net.ipv4.conf.default.log_martians", "1"]
+        - ["net.ipv4.conf.all.log_martians", "1"]
+    - name: Mark reboot
+      when: sysctl.changed
+      file:
         path: /var/run/reboot-required
-      register: reboot_required
-    - name: Restart System
-      throttle: 1
-      when: reboot_required.stat.exists
-      reboot:
+        state: touch
