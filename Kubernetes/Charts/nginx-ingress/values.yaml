@@ -1,0 +1,11 @@
+controller:
+  replicaCount: 2
+  service:
+    loadBalancerIP: 10.8.0.100
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+    operator: Equal
+    value: "true"
+prometheus:
+  create: true
