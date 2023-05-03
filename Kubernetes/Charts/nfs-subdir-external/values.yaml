@@ -1,0 +1,6 @@
+nfs:
+  server: 10.8.0.3
+  path: /KuberNFS
+storageClass:
+  defaultClass: true
+  onDelete: delete
