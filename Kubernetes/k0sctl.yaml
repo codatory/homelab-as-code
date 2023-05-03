@@ -1,0 +1,73 @@
+apiVersion: k0sctl.k0sproject.io/v1beta1
+kind: Cluster
+metadata:
+  name: home-k0s-cluster
+spec:
+  hosts:
+  - ssh:
+      address: 10.8.0.11
+      user: codatory
+      port: 22
+      keyPath: ~/.ssh/id_rsa
+    role: controller+worker
+    privateInterface: "enp0s31f6"
+    privateAddress: "10.8.0.11"
+  - ssh:
+      address: 10.8.0.12
+      user: codatory
+      port: 22
+      keyPath: ~/.ssh/id_rsa
+    role: controller+worker
+    privateInterface: "enp0s31f6"
+    privateAddress: "10.8.0.12"
+  - ssh:
+      address: 10.8.0.13
+      user: codatory
+      port: 22
+      keyPath: ~/.ssh/id_rsa
+    role: controller+worker
+    privateInterface: "enp0s31f6"
+    privateAddress: "10.8.0.13"
+  - ssh:
+      address: 10.8.0.21
+      user: codatory
+      port: 22
+      keyPath: ~/.ssh/id_rsa
+    role: worker
+  - ssh:
+      address: 10.8.0.22
+      user: codatory
+      port: 22
+      keyPath: ~/.ssh/id_rsa
+    role: worker
+  - ssh:
+      address: 10.8.0.23
+      user: codatory
+      port: 22
+      keyPath: ~/.ssh/id_rsa
+    role: worker
+  k0s:
+    version: 1.26.4+k0s.0
+    dynamicConfig: false
+    config:
+      spec:
+        api:
+          sans:
+            - 10.8.0.10
+            - 10.8.0.11
+            - 10.8.0.12
+            - 10.8.0.13
+            - 10.8.0.21
+            - 10.8.0.22
+            - 10.8.0.23
+            - 127.0.0.1
+        network:
+          podCIDR: 10.8.224.0/19
+          serviceCIDR: 10.8.220.0/20
+          nodeLocalLoadBalancing:
+            enabled: true
+            type: EnvoyProxy
+          kubeProxy:
+            mode: ipvs
+          kuberouter:
+            mtu: 9000
