@@ -19,8 +19,8 @@
         autoclean: true
         name: aptitude
     - name: Install HWE
+      notify: Mark reboot
       ansible.builtin.apt:
-        notify: Mark reboot
         name: linux-generic-hwe-20.04
     - name: Install NFS Tools
       ansible.builtin.apt:
