@@ -25,6 +25,9 @@
     - name: Install NFS Tools
       apt:
         name: nfs-common
+    - name: Install IPVS Tools
+      apt:
+        name: ['ipset', 'ipvsadm']
     - name: Install Fail2Ban
       apt:
         name: fail2ban
