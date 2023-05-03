@@ -4,25 +4,30 @@
   become: true
   tasks:
     - name: Enable nonlocal bind
-      sysctl:
+      ansible.posix.sysctl:
         name: net.ipv4.ip_nonlocal_bind
         value: 1
+        sysctl_file: /etc/sysctl.d/80-keepalived.conf
+        sysctl_set: true
     - name: Install keepalived
-      apt:
-        cache_valid_time: 900
+      ansible.builtin.apt:
         name: keepalived
     - name: Enable keepalived daemon
-      service:
+      ansible.builtin.service:
         name: keepalived.service
         state: started
         enabled: true
     - name: Update keepalived config file
-      register: config
-      copy:
+      notify: Reload keepalived
+      ansible.builtin.copy:
         src: keepalived.conf
         dest: /etc/keepalived/keepalived.conf
+        owner: root
+        group: root
+        mode: "600"
+
+  handlers:
     - name: Reload keepalived
-      when: config.changed
-      service:
+      ansible.builtin.service:
         name: keepalived.service
         state: reloaded
