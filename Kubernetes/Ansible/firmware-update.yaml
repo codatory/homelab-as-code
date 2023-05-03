@@ -1,22 +1,33 @@
-- name: Applying OS Configuration Baseline
+- name: Updating system firmware
   hosts: all
-  gather_facts: no
+  gather_facts: false
   become: true
   vars:
     ansible_ssh_pipelining: true
   tasks:
     - name: Install fwupd
-      apt:
+      ansible.builtin.apt:
         name: fwupd
     - name: Refresh fwupd db
-      command:
+      register: refresh
+      ansible.builtin.command:
         cmd: fwupdmgr refresh
-      ignore_errors: yes
+      changed_when: refresh.rc == 0
+      failed_when: not (refresh.rc == 0 or refresh.rc == 2)
     - name: Install firmware updates
       register: firmware
-      command:
+      notify: Mark system for reboot
+      ansible.builtin.command:
         cmd: fwupdmgr update -y
-    - name: Reboot for firmware updates
+      changed_when: firmware.rc == 0
+      failed_when: not (firmware.rc == 0 or firmware.rc == 2)
+
+  handlers:
+    - name: Mark system for reboot
       when: firmware.changed
-      throttle: 1
-      reboot:
+      ansible.builtin.file:
+        path: /var/run/reboot-required
+        state: touch
+        owner: root
+        group: root
+        mode: "644"
