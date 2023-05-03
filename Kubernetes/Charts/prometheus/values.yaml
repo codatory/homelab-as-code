@@ -1,0 +1,21 @@
+alertmanager:
+  enabled: false
+
+grafana:
+  defaultDasboardsTimezone: "America/Indiana/Indianapolis"
+  persistence:
+    enabled: true
+  service:
+    type: "LoadBalancer"
+  initChownData:
+    enabled: false
+
+prometheus:
+  prometheusSpec:
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
