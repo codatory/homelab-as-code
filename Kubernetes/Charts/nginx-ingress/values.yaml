@@ -1,4 +1,5 @@
 controller:
+  setAsDefaultIngress: true
   replicaCount: 2
   service:
     loadBalancerIP: 10.8.0.100
