@@ -1,0 +1,5 @@
+operator:
+  scanJobsConcurrentLimit: 4
+  vulnerabilityScannerReportTTL: "400h"
+trivy:
+  ignoreUnfixed: true
