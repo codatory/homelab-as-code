@@ -1,5 +1,6 @@
 operator:
   scanJobsConcurrentLimit: 4
   vulnerabilityScannerReportTTL: "400h"
+  configAuditScannerScanOnlyCurrentRevisions: true
 trivy:
   ignoreUnfixed: true
