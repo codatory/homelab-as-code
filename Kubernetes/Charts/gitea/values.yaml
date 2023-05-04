@@ -3,9 +3,13 @@ gitea:
     enabled: true
     serviceMonitor:
       enabled: true
+  admin:
+    existingSecret: gitea-admin-secret
   config:
     server:
       ENABLE_PPROF: true
+      ROOT_URL: http://10.8.0.110:3000/
+      DOMAIN: 10.8.0.110
     database:
       DB_TYPE: postgres
       SSL_MODE: require
@@ -29,13 +33,13 @@ service:
       metallb.universe.tf/allow-shared-ip: gitea
     type: LoadBalancer
     port: 3000
-    loadBalancerIp: 10.8.0.102
+    loadBalancerIP: 10.8.0.110
   ssh:
     annotations:
       metallb.universe.tf/allow-shared-ip: gitea
     type: LoadBalancer
     port: 22
-    loadBalancerIp: 10.8.0.102
+    loadBalancerIP: 10.8.0.110
 
 persistence:
   enabled: true
