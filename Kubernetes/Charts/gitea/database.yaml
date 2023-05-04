@@ -1,0 +1,21 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  namespace: "gitea"
+  name: gitea-psql
+spec:
+  teamId: "acid"
+  volume:
+    size: 5Gi
+  numberOfInstances: 1
+  users:
+    # database owner
+    gitea:
+    - superuser
+    - createdb
+
+  #databases: name->owner
+  databases:
+    gitea: gitea
+  postgresql:
+    version: "15"

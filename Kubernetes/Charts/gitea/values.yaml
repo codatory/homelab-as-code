@@ -1,0 +1,41 @@
+gitea:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  config:
+    server:
+      ENABLE_PPROF: true
+    database:
+      DB_TYPE: postgres
+      SSL_MODE: require
+      HOST: gitea-psql
+      NAME: gitea
+      USER: gitea
+      SCHEMA: public
+  additionalConfigFromEnvs:
+    - name: ENV_TO_INI__DATABASE__PASSWD
+      valueFrom:
+        secretKeyRef:
+          name: gitea.gitea-psql.credentials.postgresql.acid.zalan.do
+          key: password
+
+postgresql:
+  enabled: false
+
+service:
+  http:
+    annotations:
+      metallb.universe.tf/allow-shared-ip: gitea
+    type: LoadBalancer
+    port: 3000
+    loadBalancerIp: 10.8.0.102
+  ssh:
+    annotations:
+      metallb.universe.tf/allow-shared-ip: gitea
+    type: LoadBalancer
+    port: 22
+    loadBalancerIp: 10.8.0.102
+
+persistence:
+  enabled: true
